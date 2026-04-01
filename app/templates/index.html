@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Organizer</title>
+    <link rel="stylesheet" href="/static/css/select2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav id="sidebar">
+        <h2>Music Organizer</h2>
+        <ul>
+            <li class="active" data-tab="files">Files</li>
+            <li data-tab="logs">Logs</li>
+            <li data-tab="settings">Settings</li>
+        </ul>
+        <div id="ollama-indicator" class="ollama-indicator" title="Click for details">
+            <button type="button" id="mobile-player-toggle-ui" class="btn mobile-player-toggle-ui" style="display:none;">Show full interface</button>
+            <button type="button" id="mobile-player-collapse-btn" class="btn mobile-player-collapse-btn" style="display:none;" title="Collapse player">▾ Player</button>
+            <div id="now-playing-cover-wrap" class="now-playing-cover-wrap is-placeholder">
+                <div class="now-playing-cover-placeholder" aria-hidden="true">MO</div>
+                <img id="now-playing-cover" class="now-playing-cover" alt="">
+                <img id="now-playing-cover-next" class="now-playing-cover now-playing-cover-next" alt="">
+                <canvas id="now-playing-waveform" class="now-playing-waveform" aria-hidden="true"></canvas>
+            </div>
+            <div id="now-playing-controls-wrap" class="now-playing-controls-wrap" style="display:none; text-align: center;">
+                <button type="button" id="now-playing-prev-btn" class="now-playing-ctrl-btn" title="Previous track" aria-label="Previous track">
+                    <img src="/static/icons/player/prev.svg" alt="" class="now-playing-ctrl-icon" aria-hidden="true">
+                </button>
+                <button type="button" id="now-playing-play-pause-btn" class="now-playing-ctrl-btn" title="Pause or resume" aria-label="Pause or resume">
+                    <img src="/static/icons/player/pause.svg" alt="" class="now-playing-ctrl-icon" aria-hidden="true">
+                </button>
+                <button type="button" id="now-playing-stop-btn" class="now-playing-ctrl-btn" title="Stop" aria-label="Stop playback">
+                    <img src="/static/icons/player/stop.svg" alt="" class="now-playing-ctrl-icon" aria-hidden="true">
+                </button>
+                <button type="button" id="now-playing-next-btn" class="now-playing-ctrl-btn" title="Next track" aria-label="Next track">
+                    <img src="/static/icons/player/next.svg" alt="" class="now-playing-ctrl-icon" aria-hidden="true">
+                </button>
+            </div>
+            <div id="now-playing-progress-wrap" class="now-playing-progress-wrap" style="display:none;">
+                <input
+                    type="range"
+                    id="now-playing-progress"
+                    class="now-playing-progress"
+                    min="0"
+                    max="100"
+                    value="0"
+                    step="0.1"
+                    aria-label="Track playback progress"
+                >
+                <div class="now-playing-progress-time">
+                    <span id="now-playing-current-time">0:00</span>
+                    <span id="now-playing-total-time">0:00</span>
+                </div>
+            </div>
+            <button type="button" id="ollama-indicator-toggle" class="ollama-indicator-main">
+                <span id="ollama-emoji" class="ollama-emoji">😴</span>
+                <span class="ollama-title">Ollama</span>
+                <span id="ollama-state-label" class="ollama-state-label">idle</span>
+            </button>
+            <div id="ollama-indicator-details" class="ollama-indicator-details" style="display:none;">
+                <div class="ollama-details-top">
+                    <div id="ollama-state-details">No activity yet</div>
+                    <button type="button" id="btn-check-services" class="btn ollama-mini-btn" title="Check configured services">🔎</button>
+                </div>
+                <div id="ollama-services-state" class="ollama-services-state">Services not checked yet</div>
+            </div>
+            <div id="mobile-track-list-wrap" class="mobile-track-list-wrap" style="display:none;">
+                <input type="text" id="mobile-track-search" class="mobile-track-search" placeholder="Search tracks...">
+                <div id="mobile-track-list" class="mobile-track-list"></div>
+            </div>
+        </div>
+    </nav>
+    <main>
+        <!-- FILES TAB -->
+        <section id="tab-files" class="tab active">
+
+            <header>
+                <div class="stats" id="stats"></div>
+                <div class="actions">
+                    <button type="button" id="btn-scan" class="btn primary">Scan</button>
+                    <button type="button" id="btn-move" class="btn success" disabled>Move</button>
+                    <select id="move-mode" class="move-mode-select" title="Action for Move button">
+                        <option value="move">Move (recommended)</option>
+                        <option value="copy">Copy</option>
+                        <option value="hardlink">Hard Link</option>
+                        <option value="symlink">Symbolic Link</option>
+                    </select>
+                    <button type="button" id="btn-batch-delete" class="btn" disabled>🗑️ Delete</button>
+                    <button type="button" id="btn-processed-action" class="btn" disabled>Action for Processed</button>
+                    <button type="button" id="btn-auto-fill" class="btn" disabled>✨ Auto-Fill Tags</button>
+                    <button type="button" id="btn-batch-acoustid" class="btn" disabled>🎵 Batch Identify</button>
+                    <button type="button" id="btn-batch-ollama" class="btn" disabled>🤖 Batch AI</button>
+                </div>
+                <div class="filter-bar">
+                    <label>Status:</label>
+                    <select id="status-filter">
+                        <option value="new" selected>New</option>
+                        <option value="processed">Processed</option>
+                        <option value="moved">Moved</option>
+                        <option value="error">Error</option>
+                        <option value="Delete">Delete</option>
+                        <option value="pending_move">Pending Move</option>
+                        <option value="pending_acoustid">Pending AcoustID</option>
+                        <option value="pending_ollama">Pending Ollama</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- Extended Filters -->
+            <div class="extended-filters">
+                <input type="text" id="filter-search" placeholder="Search (title, artist, album)...">
+                <select id="filter-artist" class="filter-select" data-placeholder="All Artists">
+                    <option value="">All Artists</option>
+                </select>
+                <select id="filter-album" class="filter-select" data-placeholder="All Albums">
+                    <option value="">All Albums</option>
+                </select>
+                <select id="filter-year" class="filter-select" data-placeholder="All Years">
+                    <option value="">All Years</option>
+                </select>
+                <button type="button" id="btn-clear-filters" class="btn">Clear</button>
+            </div>
+
+            <div class="split">
+                <div class="file-list" id="file-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all"></th>
+                                <th></th>
+                                <th>State</th>
+                                <th>Artist</th>
+                                <th>Album</th>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Year</th>
+                            </tr>
+                        </thead>
+                        <tbody id="file-tbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="tag-editor" id="tag-editor">
+                    <h3>Tag Editor</h3>
+                    <div class="batch-notice" id="batch-notice" style="display:none;">
+                        Batch editing: <span id="batch-count">0</span> files
+                    </div>
+                    <form id="tag-form">
+                        <label>Artist</label>
+                        <input type="text" id="tag-artist" name="artist">
+                        <label>Album</label>
+                        <input type="text" id="tag-album" name="album">
+                        <label>Title</label>
+                        <input type="text" id="tag-title" name="title">
+                        <label>Track #</label>
+                        <input type="number" id="tag-track" name="track_number" min="0">
+                        <label>Year</label>
+                        <input type="text" id="tag-year" name="year">
+                        <label>Medium Format</label>
+                        <input type="text" id="tag-format" name="medium_format">
+                        <label>Medium #</label>
+                        <input type="number" id="tag-medium" name="medium_number" min="1">
+                        <div class="form-actions">
+                            <button type="submit" class="btn primary">Save Tags</button>
+                            <button type="button" id="btn-batch-save" class="btn" style="display:none;">Batch Save</button>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="btn-clear-tags" class="btn">Clear Fields</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- Task Status Panel -->
+            <div class="task-panel" id="task-panel">
+                <h3>Active Tasks</h3>
+                <div class="task-toolbar">
+                    <button type="button" id="btn-cancel-stuck-tasks" class="btn">Cancel Stuck</button>
+                </div>
+                <div class="task-list" id="task-list"></div>
+            </div>
+        </section>
+
+        <!-- LOGS TAB -->
+        <section id="tab-logs" class="tab">
+            <h2>Operation Logs</h2>
+            <button type="button" id="btn-refresh-logs" class="btn">Refresh</button>
+            <table>
+                <thead><tr><th>Time</th><th>Action</th><th>Details</th><th></th></tr></thead>
+                <tbody id="logs-tbody"></tbody>
+            </table>
+        </section>
+
+        <!-- SETTINGS TAB -->
+        <section id="tab-settings" class="tab">
+            <h2>Settings</h2>
+            <div class="settings-subtabs">
+                <button type="button" class="btn settings-subtab active" data-settings-tab="general">General</button>
+                <button type="button" class="btn settings-subtab" data-settings-tab="services">Services</button>
+                <button type="button" class="btn settings-subtab" data-settings-tab="proxy">Proxy</button>
+            </div>
+            <form id="settings-form">
+                <div class="settings-pane active" data-settings-pane="general">
+                    <label>Source Directory</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="cfg-source" name="source_dir">
+                        <button type="button" class="btn btn-browse" data-target="cfg-source">Browse</button>
+                    </div>
+                    <label>Output Directory</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="cfg-output" name="output_dir">
+                        <button type="button" class="btn btn-browse" data-target="cfg-output">Browse</button>
+                    </div>
+                    <label>Path Template</label>
+                    <input type="text" id="cfg-template" name="path_template">
+                    <small>Tokens: {Artist Name}, {Album Title}, {track:00}, {Track Title}, {Release Year}, {Medium Format}, {medium:00}</small>
+                    <label>Extensions (comma separated)</label>
+                    <input type="text" id="cfg-extensions" name="extensions">
+                    <label>Scan Interval (seconds, 0 to disable)</label>
+                    <input type="number" id="cfg-interval" name="scan_interval" min="0">
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="cfg-mobile-player-only" name="mobile_player_only">
+                        <span>Mobile: Player-only mode</span>
+                    </label>
+                    <small>On phones, hide the manager UI and show only a big, playback-focused interface.</small>
+                </div>
+
+                <div class="settings-pane" data-settings-pane="services">
+                    <label>Gotify URL</label>
+                    <input type="text" id="cfg-gotify-url" name="gotify_url">
+                    <label>Gotify Token</label>
+                    <input type="text" id="cfg-gotify-token" name="gotify_token">
+                    <div class="form-actions">
+                        <button type="button" id="btn-test-gotify" class="btn">Test Notifications</button>
+                    </div>
+                    <label>AcoustID API Key</label>
+                    <input type="text" id="cfg-acoustid-key" name="acoustid_api_key" placeholder="Get free key at https://acoustid.org/api-key">
+                    <small>Required for auto-identification by audio fingerprint <a href="https://acoustid.org/api-key">https://acoustid.org/api-key</a></small>
+                    <label>Ollama URL</label>
+                    <input type="text" id="cfg-ollama-url" name="ollama_url" placeholder="http://localhost:11434">
+                    <label>Ollama Model</label>
+                    <input type="text" id="cfg-ollama-model" name="ollama_model" placeholder="llama3.2">
+                    <small>AI-based filename analysis (fallback if AcoustID fails). Install: <a href="https://ollama.ai">ollama.ai</a></small>
+                    <div class="form-actions" style="margin: 0.5rem 0;">
+                        <button type="button" id="btn-test-ollama" class="btn">Test Ollama Connection</button>
+                    </div>
+                </div>
+
+                <div class="settings-pane" data-settings-pane="proxy">
+                    <label>Proxy Type</label>
+                    <select id="cfg-proxy-type" name="proxy_type">
+                        <option value="http">http</option>
+                        <option value="https">https</option>
+                        <option value="socks4">socks4</option>
+                        <option value="socks5">socks5</option>
+                    </select>
+                    <label>Proxy Host</label>
+                    <input type="text" id="cfg-proxy-host" name="proxy_host" placeholder="127.0.0.1">
+                    <label>Proxy Port</label>
+                    <input type="number" id="cfg-proxy-port" name="proxy_port" min="1" max="65535" placeholder="1080">
+                    <label>Proxy Username</label>
+                    <input type="text" id="cfg-proxy-username" name="proxy_username" placeholder="optional">
+                    <label>Proxy Password</label>
+                    <input type="text" id="cfg-proxy-password" name="proxy_password" placeholder="optional">
+                    <label>Proxy URL (optional override)</label>
+                    <input type="text" id="cfg-proxy-url" name="proxy_url" placeholder="socks5://user:pass@127.0.0.1:1080">
+                    <small>If Proxy URL is filled, it overrides fields above.</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Save Settings</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+    <!-- Directory Browser Modal -->
+    <div id="dir-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Directory</h3>
+                <button type="button" class="btn modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="dir-path-bar">
+                    <button type="button" class="btn btn-up">↑</button>
+                    <input type="text" id="dir-path-input" readonly>
+                </div>
+                <div class="dir-list" id="dir-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn modal-cancel">Cancel</button>
+                <button type="button" class="btn primary btn-select-dir" disabled>Select This Folder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Detail Modal -->
+    <div id="file-detail-modal" class="modal" style="display:none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>File Details</h3>
+                <button type="button" class="btn modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="file-detail-content" id="file-detail-content">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn modal-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div id="log-detail-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Log Details</h3>
+                <button type="button" class="btn modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="log-detail-content" id="log-detail-content">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn modal-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processed Action Modal -->
+    <div id="processed-action-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Action for Processed Files</h3>
+                <button type="button" class="btn modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 10px;">Select action for <span id="processed-count">0</span> file(s):</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button type="button" class="btn primary" id="btn-move-processed">📁 Move to Output</button>
+                    <button type="button" class="btn" id="btn-mark-new">🔄 Mark as New</button>
+                    <button type="button" class="btn" id="btn-delete-processed">🗑️ Delete from DB</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

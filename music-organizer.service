@@ -1,0 +1,15 @@
+[Unit]
+Description=Music Organizer - Lidarr-compatible file organizer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/mo
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8181
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=CONFIG_PATH=/home/user/mo/config.yaml
+
+[Install]
+WantedBy=multi-user.target
