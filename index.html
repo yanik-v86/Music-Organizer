@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Organizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: #0f0d0b;
+    color: #d9cfc5;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .bg-grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(180, 130, 90, 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 70% at 90% 80%, rgba(160, 90, 110, 0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(120, 160, 140, 0.03) 0%, transparent 60%);
+  }
+
+  .container {
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  header {
+    text-align: center;
+    padding: 3rem 0 2.5rem;
+  }
+
+  .logo {
+    margin-bottom: 1rem;
+    border-radius: 16px;
+    max-width: 720px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: #ece3d8;
+    margin-bottom: 0.4rem;
+  }
+
+  .subtitle {
+    font-size: 1.05rem;
+    color: #a89b8e;
+    font-weight: 400;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .tagline {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, rgba(210, 160, 100, 0.15), rgba(180, 110, 130, 0.12));
+    border: 1px solid rgba(210, 160, 100, 0.15);
+    color: #c9b098;
+  }
+
+  section {
+    margin-top: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #e0d4c6;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 1.1em;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #d4a574, #b8727a);
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: linear-gradient(145deg, rgba(26, 21, 17, 0.85), rgba(20, 16, 13, 0.9));
+    border: 1px solid rgba(200, 170, 140, 0.08);
+    border-radius: 14px;
+    padding: 1.6rem 1.8rem;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  .card + .card {
+    margin-top: 1rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  @media (max-width: 560px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #cbbcac;
+    transition: background 0.2s;
+  }
+
+  .feature-item:hover {
+    background: rgba(210, 170, 130, 0.06);
+  }
+
+  .feature-item .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    background: rgba(210, 160, 100, 0.1);
+  }
+
+  .format-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .format-badge {
+    padding: 0.25rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: rgba(180, 140, 110, 0.1);
+    border: 1px solid rgba(180, 140, 110, 0.12);
+    color: #b8a694;
+  }
+
+  .install-steps {
+    counter-reset: step;
+  }
+
+  .install-step {
+    padding: 0.6rem 0;
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .install-step + .install-step {
+    border-top: 1px solid rgba(200, 170, 140, 0.06);
+  }
+
+  .install-step::before {
+    counter-increment: step;
+    content: counter(step);
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #d4a574, #b8727a);
+    color: #0f0d0b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 5px;
+    background: rgba(180, 140, 110, 0.08);
+    color: #d4bea8;
+  }
+
+  pre {
+    margin: 0.6rem 0;
+    padding: 0.9rem 1.1rem;
+    border-radius: 10px;
+    background: rgba(10, 8, 6, 0.6);
+    border: 1px solid rgba(200, 170, 140, 0.06);
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    color: #c9b8a5;
+    line-height: 1.5;
+  }
+
+  pre .cmd { color: #b8a694; }
+  pre .path { color: #8fa89a; }
+  pre .str { color: #c9a88a; }
+
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .api-table th,
+  .api-table td {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid rgba(200, 170, 140, 0.06);
+  }
+
+  .api-table th {
+    font-weight: 600;
+    color: #b8a694;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .api-table tr:hover td {
+    background: rgba(210, 170, 130, 0.03);
+  }
+
+  .api-method {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .api-method.get { background: rgba(100, 180, 160, 0.15); color: #8fc0b0; }
+  .api-method.put { background: rgba(200, 160, 100, 0.15); color: #d4b888; }
+  .api-method.post { background: rgba(180, 130, 150, 0.15); color: #ccb0b8; }
+
+  .links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(210, 160, 100, 0.15);
+    background: rgba(210, 160, 100, 0.06);
+    color: #c9b098;
+  }
+
+  .button:hover {
+    background: rgba(210, 160, 100, 0.12);
+    border-color: rgba(210, 160, 100, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .button-primary {
+    background: linear-gradient(135deg, rgba(210, 160, 100, 0.15), rgba(180, 110, 130, 0.12));
+    border-color: rgba(210, 160, 100, 0.2);
+    color: #d4bea8;
+  }
+
+  .button-primary:hover {
+    background: linear-gradient(135deg, rgba(210, 160, 100, 0.22), rgba(180, 110, 130, 0.18));
+  }
+
+  footer {
+    text-align: center;
+    padding: 3rem 0 1rem;
+    font-size: 0.82rem;
+    color: #7a6f63;
+  }
+
+  footer a {
+    color: #a89b8e;
+    text-decoration: none;
+  }
+
+  footer a:hover {
+    color: #c9b098;
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.8rem; }
+    .card { padding: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grain"></div>
+
+<div class="container">
+
+  <header>
+    <img src="music-manager.png" alt="Music Organizer" class="logo">
+    <h1>Music Organizer</h1>
+    <p class="subtitle">
+      A powerful web-based music file manager with automatic tag reading,
+      audio fingerprint identification, and smart file organization.
+    </p>
+    <span class="tagline">Python &middot; FastAPI &middot; Mutagen &middot; AcoustID</span>
+  </header>
+
+  <section>
+    <h2>Features</h2>
+    <div class="card">
+      <div class="features-grid">
+        <div class="feature-item">
+          <span class="icon">🎵</span>
+          Automatic Tag Reading
+        </div>
+        <div class="feature-item">
+          <span class="icon">📁</span>
+          Smart File Organization
+        </div>
+        <div class="feature-item">
+          <span class="icon">🔍</span>
+          Audio Fingerprint Identification
+        </div>
+        <div class="feature-item">
+          <span class="icon">🤖</span>
+          AI-Powered Filename Analysis
+        </div>
+        <div class="feature-item">
+          <span class="icon">🎨</span>
+          Cover Art Extraction
+        </div>
+        <div class="feature-item">
+          <span class="icon">📊</span>
+          Batch Operations
+        </div>
+        <div class="feature-item">
+          <span class="icon">🔔</span>
+          Gotify Notifications
+        </div>
+        <div class="feature-item">
+          <span class="icon">🌐</span>
+          Modern Web Interface
+        </div>
+        <div class="feature-item">
+          <span class="icon">⚡</span>
+          Background Task Queue
+        </div>
+        <div class="feature-item">
+          <span class="icon">🛠️</span>
+          RESTful API
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Supported Formats</h2>
+    <div class="card">
+      <div class="format-list">
+        <span class="format-badge">MP3</span>
+        <span class="format-badge">FLAC</span>
+        <span class="format-badge">M4A / AAC</span>
+        <span class="format-badge">OGG</span>
+        <span class="format-badge">WAV</span>
+        <span class="format-badge">WMA</span>
+        <span class="format-badge">OPUS</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Quick Start</h2>
+    <div class="card install-steps">
+      <div class="install-step">
+        <div>
+          <strong>Install system dependencies</strong>
+          <pre>$ sudo apt-get install python3-pip chromaprint-tools</pre>
+        </div>
+      </div>
+      <div class="install-step">
+        <div>
+          <strong>Clone and set up</strong>
+          <pre><span class="path">music-organizer/</span>$ python3 -m venv venv
+<span class="path">music-organizer/</span>$ source venv/bin/activate
+<span class="path">music-organizer/</span>$ pip install -r requirements.txt</pre>
+        </div>
+      </div>
+      <div class="install-step">
+        <div>
+          <strong>Configure</strong> &mdash; edit <code>config.yaml</code> with your source directory, output path, and AcoustID API key.
+        </div>
+      </div>
+      <div class="install-step">
+        <div>
+          <strong>Run the server</strong>
+          <pre>$ uvicorn app.main:app --host 0.0.0.0 --port 8181</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>API Endpoints</h2>
+    <div class="card" style="padding: 0; overflow-x: auto;">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="api-method get">GET</span></td><td><code>/api/files</code></td><td>List files with filters</td></tr>
+          <tr><td><span class="api-method get">GET</span></td><td><code>/api/files/{id}</code></td><td>Get file details</td></tr>
+          <tr><td><span class="api-method get">GET</span></td><td><code>/api/files/{id}/tags</code></td><td>Get file tags</td></tr>
+          <tr><td><span class="api-method put">PUT</span></td><td><code>/api/files/{id}/tags</code></td><td>Update tags</td></tr>
+          <tr><td><span class="api-method post">POST</span></td><td><code>/api/files/{id}/identify</code></td><td>Identify track via AcoustID</td></tr>
+          <tr><td><span class="api-method post">POST</span></td><td><code>/api/files/{id}/analyze-llm</code></td><td>Analyze filename with LLM</td></tr>
+          <tr><td><span class="api-method post">POST</span></td><td><code>/api/files/move</code></td><td>Move selected files</td></tr>
+          <tr><td><span class="api-method post">POST</span></td><td><code>/api/scan</code></td><td>Scan source directory</td></tr>
+          <tr><td><span class="api-method get">GET</span></td><td><code>/api/tasks</code></td><td>List background tasks</td></tr>
+          <tr><td><span class="api-method get">GET</span></td><td><code>/api/config</code></td><td>Get configuration</td></tr>
+          <tr><td><span class="api-method put">PUT</span></td><td><code>/api/config</code></td><td>Update configuration</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="links">
+    <a href="https://github.com/yanik-v86/Music-Manager" class="button button-primary">GitHub</a>
+    <a href="https://github.com/yanik-v86/Music-Manager/issues" class="button">Report Issue</a>
+  </div>
+
+  <footer>
+    <p>Music Organizer &mdash; MIT License</p>
+    <p style="margin-top: 0.3rem;">
+      <a href="https://github.com/yanik-v86/Music-Manager">yanik-v86/Music-Manager</a>
+    </p>
+  </footer>
+
+</div>
+
+</body>
+</html>
